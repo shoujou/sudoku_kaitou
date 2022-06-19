@@ -1,31 +1,36 @@
 import numpy as np
 import math
 
-sudoku = "1200000130400100"
+test1 = "1200000130400100"
 class Sudoku:
     def __init__(self, sudoku):
-        self.problem =  sudoku
-        self.answer = None
-        self.edge = self.get_edge(self.problem) #辺を取得
+        self.edge = self.get_edge(sudoku) #辺を取得
+        self.sudoku =  np.array(list(sudoku)).reshape(self.edge, self.edge)
     
     def get_edge(self, sudoku):
         return int(math.sqrt(len(sudoku)))
 
     def show_sudoku(self, sudoku):
-        if sudoku == None:
-            return 
-        print(np.array(list(sudoku)).reshape(self.edge, self.edge))
+        print(sudoku)
         print('---------------------------------------')
 
-    #def solve_allSearch(self):
+    def solve_allSearch(self, sudoku):
+        mask = [sudoku == '0']
+        self.check(sudoku)
+    
+    def check(self, sudoku):
+        for j in range(self.edge): #横方向
+            sudoku[0][j] 
+            
+        
 
     def exe(self):          #実行
-        self.show_sudoku(self.problem)
-        #self.solve_allSearch(self.problem)
-        self.show_sudoku(self.answer)
+        self.show_sudoku(self.sudoku)
+        answer = self.solve_allSearch(self.sudoku)
+        self.show_sudoku(answer)
 
-test1 = Sudoku(sudoku)
-test1.exe()
+t1 = Sudoku(test1)
+t1.exe()
 
 
 

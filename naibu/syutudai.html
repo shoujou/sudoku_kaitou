@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+	<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+	<meta charset="UTF-8">
+	<title>ナンプレ作問</title>
+</head>
+
+<body>
+
+	<h1>ナンプレ作問</h1>
+	<h3>問題を入力してください</h3>
+	<div id="text"></div>
+	<input type="button" value="出題" onClick="syutudai()">
+	<input type="button" value="リセット" onClick="reset()">
+	<br>
+	<canvas width="450" height="450" id="canvas" style="border:1px solid black"></canvas>
+	<br><input type="button" value="解答チェック" onClick="Answer()">
+	<div id="check"></div>
+	<!--
+	<a><a href="index.html"><p>解答ページへ</p></a>
+	-->
+	<a><a href="np3.php">
+			<p>解答ページへ</p>
+		</a>
+		<br>
+		<script type="text/javascript">
+			const CANVAS = document.getElementById("canvas");
+			const CONTEXT = CANVAS.getContext("2d");
+
+			let x = 0;
+			let y = 0;
+			let question_num = 0; //問題No
+			var checkdiv = document.getElementById("check");
+			var str_number, str_answer; //テキストに書き込む用の問題，解答文字列を格納
+			var tmp_number;  //問題退避用
+			let mask = new Array(81).fill(true);
+			let number = [
+				0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0
+			];
+
+			let field = [
+				0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0
+			];
+
+			let answer = [
+				6, 9, 5, 8, 2, 3, 4, 1, 7,
+				7, 1, 3, 4, 6, 5, 9, 8, 2,
+				4, 8, 2, 1, 9, 7, 6, 3, 5,
+				9, 2, 4, 6, 3, 1, 7, 5, 8,
+				1, 5, 6, 9, 7, 8, 2, 4, 3,
+				8, 3, 7, 5, 4, 2, 1, 9, 6,
+				5, 6, 9, 2, 8, 4, 3, 7, 1,
+				2, 7, 1, 3, 5, 9, 8, 6, 4,
+				3, 4, 8, 7, 1, 6, 5, 2, 9
+			];
+			console.log(number);
+
+			document.addEventListener("keydown", movePointer);
+
+			//問題の空の場所を記憶
+			function createMask() {
+				for (let i = 0; i < number.length; i++) {
+					if (number[i] == 0) {
+						mask[i] = false;
+					}
+				}
+			}
+
+			//マスクを初期化(入力モード：青)
+			function init_mask() {
+				mask.fill(true);
+				console.log(mask)
+			}
+
+			function drawField() {	// マス目作成
+				CONTEXT.strokeStyle = "green";
+				CONTEXT.lineWidth = 5;
+
+				for (let i = 150; i <= 300; i = i + 150) {
+					CONTEXT.moveTo(i, 0);
+					CONTEXT.lineTo(i, 450);
+					CONTEXT.stroke();
+
+					CONTEXT.moveTo(0, i);
+					CONTEXT.lineTo(450, i);
+					CONTEXT.stroke();
+				}
+
+				CONTEXT.lineWidth = 1;
+
+				for (let i = 50; i <= 450; i = i + 50) {
+					CONTEXT.moveTo(i, 0);
+					CONTEXT.lineTo(i, 450);
+					CONTEXT.stroke();
+
+					CONTEXT.moveTo(0, i);
+					CONTEXT.lineTo(450, i);
+					CONTEXT.stroke();
+				}
+
+				CONTEXT.font = "30px serif";
+				CONTEXT.textAlign = "center";
+
+				for (let i = 0; i < 81; i++) {
+					//if (number[i] == 0) {
+					//CONTEXT.fillStyle = "red";	// 空白の所の文字の色
+					//} else {
+					//CONTEXT.fillStyle = "blue";	// 最初から入力されている数字の色
+					//}
+					if (mask[i]) {
+						CONTEXT.fillStyle = "blue";	//  最初から入力されている数字の色
+					} else {
+						CONTEXT.fillStyle = "red";	//  空白の所の文字の色
+					}
+					if (number[i] + field[i] != 0) {
+						CONTEXT.fillText(number[i] + field[i], 25 + 50 * (i % 9), 35 + 50 * (Math.floor(i / 9)));
+					}
+				}
+
+
+				CONTEXT.lineWidth = 4;
+				CONTEXT.strokeStyle = "orange";
+				CONTEXT.beginPath();
+				CONTEXT.rect(x * 50, y * 50, 50, 50);	// 四角形を引く。
+				CONTEXT.stroke();
+			}
+
+			drawField();
+
+
+
+			//テキストから問題を読み込む
+			function syutudai() {
+				var q_src = "1.txt"
+				var a_src = "1_a.txt"
+				$(function () {
+					$.get(q_src, function (data) {
+						let lines = data.split(/\n/);
+						let question = lines.map(line => line.split(''));
+						for (let i = 0; i < 81; i++) {
+							number[i] = Number(question[0][i]);
+						}
+						CONTEXT.clearRect(0, 0, 450, 450);
+						drawField();
+					});
+				});
+			}
+			//入力された問題をリセットする		
+			function reset() {
+				for (let i = 0; i < 81; i++) {
+					number[i] = 0;
+					answer[i] = 0;
+				}
+				CONTEXT.clearRect(0, 0, 450, 450);
+				init_mask()
+				drawField();
+				checkdiv.innerHTML = "<br>";
+			}
+
+			/* キーボードでどのキーを押したか判別 */
+			function movePointer(e) {
+				//	if(tid == 0){	// ゲーム中でなければなにもしない。
+				//		return;
+				//	}
+				if (e.key == "ArrowRight") {	// 右矢印を押した時
+					if (x < 8) {		// xが8未満の時だけ、xを1つ増やす
+						x = x + 1;
+						//a1[a1_cnt++].play();	//　移動した時の効果音
+						//a1_cnt &= 3;	// a1_cntが0～3の範囲になるように4になったら0に戻す
+					}
+				} else if (e.key == "ArrowLeft") {		//　左矢印を押した時
+					if (0 < x) {		// xが0より大きい時に、xを1減らす
+						x = x - 1;
+						//a1[a1_cnt++].play();	//　移動した時の効果音
+						//a1_cnt &= 3;	// a1_cntが0～3の範囲になるように4になったら0に戻す
+					}
+				} else if (e.key == "ArrowDown") {		//　下矢印を押した時
+					if (y < 8) {		// yが8未満の時だけ、yを1つ増やす
+						y = y + 1;
+						//a1[a1_cnt++].play();	//　移動した時の効果音
+						//a1_cnt &= 3;	// a1_cntが0～3の範囲になるように4になったら0に戻す
+					}
+				} else if (e.key == "ArrowUp") {		//　上矢印を押した時
+					if (y > 0) {		// yが0より大きい時に、yを1減らす
+						y = y - 1;
+						//a1[a1_cnt++].play();	//　移動した時の効果音
+						//a1_cnt &= 3;	// a1_cntが0～3の範囲になるように4になったら0に戻す
+					}
+				} else if (48 <= e.keyCode && e.keyCode <= 57) {	// 数字をのキーを押された時
+					putNumber(e.keyCode - 48);
+					//a2.play();	// 入力時の音楽を再生
+				}
+				CONTEXT.clearRect(0, 0, 450, 450);
+				drawField();
+			}
+			// 数字キー入力
+			function putNumber(n) {
+				if (number[(y * 9) + x] == 0) {
+					number[(y * 9) + x] = n;
+				}
+				if (n == 0) {
+					number[(y * 9) + x] = n;
+				}
+			}
+
+			// テキストファイルへの問題登録
+			function Submit(question, answer) {
+				console.log(question + ',' + answer);
+				//php呼び出し
+				$(function () {
+					$.ajax({
+						url: 'check.php',
+						type: 'post',
+						data: {
+							send_num: question,
+							send_ans: answer
+						}
+					}).done(function () {
+						alert('登録しました');
+					});
+				});
+			}
+
+			//登録キャンセル
+			function Cancel() {
+				//登録前の状態に戻す
+				number = tmp_number;
+				console.log(tmp_number);
+				CONTEXT.clearRect(0, 0, 450, 450);
+				drawField();
+				checkdiv.innerHTML = "<br>";
+				init_mask()
+			}
+
+			// 入力された問題の解答をチェック
+			function Answer() {
+				str_number = number.join('');
+				//解答出力前の問題をコピー
+				tmp_number = Array.from(number);
+				var array_answer;
+				let cnt = 0;
+				console.log(str_number);
+				//CGI呼び出し
+				$(function () {
+					$.ajax({
+						url: 'solve_np.py',
+						type: 'post',
+						data: str_number
+					}).done(function (data) {
+						str_answer = String(data);
+						str_answer = str_answer.replace(/\r?\n/g, '');
+						array_answer = str_answer.split('');
+						//解答不可(返値が空の場合)
+						if (!array_answer.length) {
+							alert('解答不可の問題です');
+							return -1;
+						}
+						//返ってきた答えを代入
+						for (let i = 0; i < 81; i++) {
+							answer[i] = Number(array_answer[i]);
+							if (number[i] == 0) {
+								cnt++;
+							}
+						}
+						if (cnt == 0) {
+							alert('解答スペースがありません');
+							Cancel();
+							return -1;
+						}
+
+						createMask()
+						//解答を問題と合わせて画面に表示
+						for (i = 0; i < 81; i++) {
+							number[i] = answer[i];
+						}
+						CONTEXT.clearRect(0, 0, 450, 450);
+						drawField();
+
+						//問題の登録を選択させる
+						checkdiv.innerHTML = "解答可能です．<br>問題を登録しますか?<br>";
+						checkdiv.innerHTML += "<form action = 'check.php' method = 'POST'><input type='hidden' name='send_num' value='' id='question'/><input type='hidden' name='send_ans' value='' id='answer'/><input type='submit' value='登録'/></form>";
+						checkdiv.innerHTML += "<input type='button' value='キャンセル' onClick='Cancel()' />"
+
+						document.getElementById("question").value = str_number;
+						document.getElementById("answer").value = str_answer;
+
+					}).fail(function () {
+						console.log('failed');
+					});
+				});
+			}
+
+		</script>
+</body>
+
+</html>
